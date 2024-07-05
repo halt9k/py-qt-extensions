@@ -8,9 +8,6 @@ from PySide6.QtGui import QColor
 from PySide6.QtWidgets import QWidget, QListWidgetItem, QListWidget, QComboBox
 from typing_extensions import override
 
-from src.helpers.python_extensions import context_switch
-
-
 class Logger(QObject):
     log_signal = Signal(str)
 
@@ -79,7 +76,7 @@ class QTracedThread(QThread):
     def run(self):
         # without this, breakpoints may not work under IDE
         # TODO best place to settrace, but it creates a random AV on thread quit
-        # pydevd.settrace(suspend=False)
+        pydevd.settrace(suspend=False)
         super(QTracedThread, self).run()
 
 
@@ -142,7 +139,7 @@ class QNTimer(QTimer):
     @Slot()
     def on_timeout(self):
         # definetly provokes crash on close
-        # pydevd.settrace(suspend=False)
+        pydevd.settrace(suspend=False)
         self.count += 1
         if self.count > self.target_count:
             self.quit()

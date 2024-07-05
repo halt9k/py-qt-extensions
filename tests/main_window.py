@@ -4,12 +4,13 @@ from pathlib import Path
 
 # Qt intellisense pip install PySide6-stubs
 from PySide6.QtCore import Qt, Signal, Slot
-from PySide6.QtGui import QCloseEvent
+from PySide6.QtGui import QCloseEvent, QShowEvent
 from PySide6.QtWidgets import QApplication, QMainWindow, QWidget
 from typing_extensions import override
 
-import helpers.os_helpers  # noqa: F401
-from qt_async_button import QAsyncButton, QWorker
+import src.helpers.os_helpers  # noqa: F401
+from src.helpers.qt import QNTimer
+from src.qt_async_button import QAsyncButton, QWorker
 
 
 class MainWindowFrame(QMainWindow):
@@ -19,12 +20,12 @@ class MainWindowFrame(QMainWindow):
         self.setWindowTitle("WinApi message test")
         if not self.objectName():
             self.setObjectName(u"QMainWindow")
-        self.resize(800, 600)
+        self.resize(400, 300)
 
         self.central_widget = QWidget(self)
         self.setCentralWidget(self.central_widget)
 
-        self.test_button = QAsyncButton(text="Pick under cursor...", parent=self)
+        self.test_button = QAsyncButton(text="Test button", parent=self)
 
 
 @dataclass(init=True)
@@ -45,6 +46,7 @@ class TestWorker(QWorker):
 
 class MainWindow(MainWindowFrame):
     close_event = Signal()
+    show_event = Signal()
     send_test_data = Signal(SendData)
 
     def __init__(self):
@@ -55,10 +57,21 @@ class MainWindow(MainWindowFrame):
             # worker.pick_hwnd.connect(self.on_pick_hwnd)
             return worker
         self.test_button.attach_worker(test_worker_factory)
+        self.cb_on_show = None
 
     def closeEvent(self, event: QCloseEvent) -> None:
         self.close_event.emit()
         event.accept()
+
+    @override
+    def showEvent(self, event: QShowEvent) -> None:
+        self.show_event.connect(self.after_show_event)
+        self.show_event.emit()
+
+    @Slot()
+    def after_show_event(self):
+        if self.cb_on_show:
+            self.cb_on_show()
 
     @Slot()
     def on_send_data_request(self):
@@ -72,4 +85,3 @@ class App(QApplication):
 
         self.ui = MainWindow()
         self.ui.show()
-
