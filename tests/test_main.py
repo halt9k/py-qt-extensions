@@ -7,11 +7,11 @@ import pytest
 from PySide6.QtCore import Slot, SignalInstance, QThread, qDebug
 from typing_extensions import override
 
-import src.helpers.os_helpers  # noqa: F401
+import tests.helpers.os_helpers  # noqa: F401
 from main_window import App
-from src.qt_async_button import QAsyncButton
-from src.qt_n_timer import QNTimer
-from src.qt_traced_thread import QWorker, QTracedThread, QSafeThreadedPrint
+from lib.qt.qt_async_button import QAsyncButton
+from lib.qt.qt_n_timer import QNTimer
+from lib.qt.qt_traced_thread import QWorker, QTracedThread, QSafeThreadedPrint
 
 
 def gc_after(func, msg):
@@ -50,8 +50,8 @@ class TestIntegratedLoad:
     down_at_least_once = False
     workers_count = 0
 
-    @patch('src.qt_async_button.QAsyncButton.on_after_thread', gc_after(QAsyncButton.on_after_thread, 'on_after_thread'))
-    @patch('src.qt_async_button.QAsyncButton.stop_thread', gc_after(QAsyncButton.stop_thread, 'stop_thread'))
+    @patch('lib.qt.qt_async_button.QAsyncButton.on_after_thread', gc_after(QAsyncButton.on_after_thread, 'on_after_thread'))
+    @patch('lib.qt.qt_async_button.QAsyncButton.stop_thread', gc_after(QAsyncButton.stop_thread, 'stop_thread'))
     def test_traced_thread_random_crash(self):
         """
         Comprehensive load test to try to provoke random overlaps on threads (main vs button).
@@ -136,10 +136,10 @@ class TestWorkerDeadlock:
         TestWorkerDeadlock.terminate_called = True
         QThread.terminate(self)
 
-    @patch('src.qt_traced_thread.QTracedThread.THREAD_QUIT_DEADLINE_MS', 50)
-    @patch('src.qt_traced_thread.QTracedThread.THREAD_TERMINATION_DEADLINE_MS', 100)
-    @patch('src.qt_traced_thread.QTracedThread.quit_or_terminate_qthread', ensure_raises(QTracedThread.quit_or_terminate_qthread, TimeoutError))
-    @patch.object(src.qt_traced_thread.QTracedThread, 'terminate', new=terminate_patch)
+    @patch('lib.qt.qt_traced_thread.QTracedThread.THREAD_QUIT_DEADLINE_MS', 50)
+    @patch('lib.qt.qt_traced_thread.QTracedThread.THREAD_TERMINATION_DEADLINE_MS', 100)
+    @patch('lib.qt.qt_traced_thread.QTracedThread.quit_or_terminate_qthread', ensure_raises(QTracedThread.quit_or_terminate_qthread, TimeoutError))
+    @patch.object(QTracedThread, 'terminate', new=terminate_patch)
     def test_locked_thread(self):
         """ Test for QTracedThread.quit_or_terminate_qthread demanding terminate()  """
         app = App()
@@ -172,7 +172,7 @@ class TestWorkerDeadlock:
         if res != 0:
             sys.exit(res)
 
-
+@patch('PySide6.QtCore.SignalInstance.connect', log_signals(SignalInstance.connect))
 class TestUIQuit:
     def test_ui_quit(self):
         app = App()

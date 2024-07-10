@@ -3,11 +3,11 @@ from pathlib import Path
 from sys import path
 
 """
- This module is intended to be imported before all other src/* modules
+ This module is intended to be imported before all other qt/* modules
  allows to keep sources organized with working dir . as root:
  ./README.md
  ./<main launch files>
- ./src/*.py
+ ./qt/*.py
  ./data/*
 
  Import without warning:

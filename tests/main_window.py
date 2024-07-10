@@ -5,7 +5,7 @@ from PySide6.QtCore import Signal
 from PySide6.QtGui import QCloseEvent
 from PySide6.QtWidgets import QApplication, QMainWindow, QWidget
 
-from src.qt_async_button import QAsyncButton
+from lib.qt.qt_async_button import QAsyncButton
 
 
 class MainWindowFrame(QMainWindow):

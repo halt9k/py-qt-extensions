@@ -3,7 +3,7 @@ from typing import Callable, Optional
 from PySide6.QtCore import QThread, Slot, qFatal, qDebug
 from PySide6.QtWidgets import QPushButton
 
-from src.qt_traced_thread import QTracedThread, QWorker
+from .qt_traced_thread import QTracedThread, QWorker
 
 
 class QAsyncButton(QPushButton):
@@ -28,9 +28,8 @@ class QAsyncButton(QPushButton):
 
         close_event = self.window().close_event
         if close_event:
-            self.window().close_event.connect(self.stop_thread)
+            close_event.connect(self.stop_thread)
         else:
-            # TODO was finished emited automatically?
             qFatal("QAsyncButton needs to know when MainWindow is closed to terminate thread if it works.\n"
                    "Propagate a signal from QMainWindow.closeEvent() for this.")
 
@@ -52,9 +51,20 @@ class QAsyncButton(QPushButton):
         if self.cb_after_worker:
             self.cb_after_worker()
         self.exit_contexts()
+
         self.setEnabled(True)
         qDebug('self.setEnabled(True)')
 
+    def create_workthread(self):
+        # possibly thread worker better to be extracted out of button
+        assert not self.thread
+        self.thread = QTracedThread()
+
+        assert not self.worker
+        self.worker: QWorker = self.create_worker()
+        self.worker.moveToThread(self.thread)
+
+    def delete_workthread(self):
         # reminder in case of persistent worker
         # self.worker.moveToThread(self.ui_thread)
         assert self.worker
@@ -69,21 +79,17 @@ class QAsyncButton(QPushButton):
         assert self.ui_thread == QThread.currentThread()
 
         self.on_before_thread()
-
-        assert not self.thread
-        self.thread = QTracedThread()
-
-        assert not self.worker
-        self.worker: QWorker = self.create_worker()
-        self.worker.moveToThread(self.thread)
-
-        # worker quits as expected
-        self.worker.finished.connect(self.stop_thread)
-
-        self.thread.finished.connect(self.on_after_thread)
-        # thread terminated externally, for example, when main window closed
+        self.create_workthread()
 
         self.thread.started.connect(self.worker.run)
+
+        # if worker quits as expected, this call is direct signal
+        # thread can also be stopped externally, for example, when main window closed
+        # in that case, call to stop_thread is indirect
+        self.worker.finished.connect(self.stop_thread)
+
+        self.thread.finished.connect(self.delete_workthread)
+        self.thread.finished.connect(self.on_after_thread)
 
         self.thread.start()
 
