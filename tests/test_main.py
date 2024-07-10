@@ -1,18 +1,17 @@
 import gc
 import re
 import sys
-import threading
 from unittest.mock import patch
 
 import pytest
-from PySide6.QtCore import Slot, SignalInstance, QThread, qDebug, qInstallMessageHandler, QMutexLocker, QMutex
+from PySide6.QtCore import Slot, SignalInstance, QThread, qDebug
 from typing_extensions import override
 
 import src.helpers.os_helpers  # noqa: F401
 from main_window import App
 from src.qt_async_button import QAsyncButton
 from src.qt_n_timer import QNTimer
-from src.qt_traced_thread import QWorker, QTracedThread
+from src.qt_traced_thread import QWorker, QTracedThread, QSafeThreadedPrint
 
 
 def gc_after(func, msg):
@@ -40,19 +39,9 @@ def log_signals(func):
     return wrapper
 
 
-class QPrint:
-    # QMutex is probably requred because of used QThreads
-    mutex = QMutex()
-
-    @staticmethod
-    def log_handler(mode, context, msg):
-        with QMutexLocker(QPrint.mutex):
-            # reminder: to see output in IDE during debug (rather than after debug)
-            # use -s argument for specific pytest runs
-            print(f"{threading.current_thread().name:>10}  {msg}")
-
-
-qInstallMessageHandler(QPrint.log_handler)
+# reminder: to see output in IDE during pytests (rather than after debug)
+# use -s argument for specific pytest runs
+QSafeThreadedPrint.print_qt_in_ouput()
 
 
 @patch('PySide6.QtCore.SignalInstance.connect', log_signals(SignalInstance.connect))

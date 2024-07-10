@@ -1,7 +1,9 @@
+import threading
 from abc import abstractmethod
 
 import pydevd
-from PySide6.QtCore import QThread, QObject, Signal, Slot, QDeadlineTimer, qWarning
+from PySide6.QtCore import QThread, QObject, Signal, Slot, QDeadlineTimer, qWarning, QMutex, QMutexLocker, \
+    qInstallMessageHandler
 from typing_extensions import override
 
 
@@ -109,3 +111,17 @@ class QReusableWorker(QObject):
     def on_finished(self):
         self.moveToThread(self.original_thread)
 '''
+
+
+class QSafeThreadedPrint:
+    """ Redirects qDebug, qWarning, etc to output """
+    mutex = QMutex()
+
+    @staticmethod
+    def log_handler(mode, context, msg):
+        with QMutexLocker(QSafeThreadedPrint.mutex):
+            print(f"{threading.current_thread().name:>10}  {msg}")
+
+    @staticmethod
+    def print_qt_in_ouput():
+        qInstallMessageHandler(QSafeThreadedPrint.log_handler)
