@@ -1,9 +1,10 @@
+import sys
 import threading
 from abc import abstractmethod
 
 import pydevd
 from PySide6.QtCore import QThread, QObject, Signal, Slot, QDeadlineTimer, qWarning, QMutex, QMutexLocker, \
-    qInstallMessageHandler
+    qInstallMessageHandler, qDebug
 from typing_extensions import override
 
 
@@ -15,6 +16,7 @@ class QTracedThread(QThread):
     def run(self):
         # without this, breakpoints may not work under IDE
         pydevd.settrace(suspend=False)
+        qDebug('QTracedThread.run')
         super(QTracedThread, self).run()
 
     @staticmethod
@@ -60,7 +62,9 @@ class QWorker(QObject):
 
     @Slot()
     def run(self):
+        # was nessesary for QTimer events traced and possibly for others
         pydevd.settrace(suspend=False)
+        qDebug('QWorker.run')
 
         try:
             self.started.emit()
@@ -119,8 +123,9 @@ class QSafeThreadedPrint:
 
     @staticmethod
     def log_handler(mode, context, msg):
+        deb_at = sys.gettrace() is not None
         with QMutexLocker(QSafeThreadedPrint.mutex):
-            print(f"{threading.current_thread().name:>10}  {msg}")
+            print(f"{threading.current_thread().name:>10}    Debug: {deb_at}     {msg}")
 
     @staticmethod
     def print_qt_in_ouput():

@@ -63,36 +63,39 @@ class TestIntegratedLoad:
 
         class TestWorker(QWorker):
             def __init__(self):
-                super(TestWorker, self).__init__()
+                super().__init__()
                 self.timer = QNTimer(parent=self)
+                qDebug('TestWorker.__init__')
                 self.timer.timeout_n.connect(self.worker_payload)
                 self.timer.finished.connect(self.finished)
 
             @Slot(int)
             def worker_payload(self, n):
-                qDebug('TestWorker worker_payload')
+                qDebug('TestWorker.worker_payload')
                 test_sleeps = [0, 150, 1, 99, 9]
                 QThread.msleep(test_sleeps[n])
                 self.timer.continue_loop()
 
             @override
             def on_run(self):
-                qDebug('TestWorker started')
+                qDebug('TestWorker.on_run')
                 self.timer.start(loop_n=5, interval_msec=10)
 
             @Slot()
             @override
             def on_finished(self):
+                qDebug('TestWorker.on_finished')
                 TestIntegratedLoad.workers_count += 1
                 qDebug('TestWorker finished')
 
         def test_worker_factory():
             worker = TestWorker()
-            qDebug('TestWorker created')
+            qDebug('test_worker_factory')
             return worker
 
         app.ui.test_button.attach_worker(cb_create_worker=test_worker_factory)
         timer = QNTimer(parent=app.ui)
+        qDebug('test_traced_thread_random_crash.body')
 
         @Slot(int)
         def spam_click(n):
@@ -108,7 +111,7 @@ class TestIntegratedLoad:
         timer.timeout_n.connect(spam_click)
         timer.finished.connect(app.ui.close)
 
-        timer.start(25, 120)
+        timer.start(1, 120)
         res = app.exec()
         app.shutdown()
 
@@ -171,6 +174,7 @@ class TestWorkerDeadlock:
         app.shutdown()
         if res != 0:
             sys.exit(res)
+
 
 @patch('PySide6.QtCore.SignalInstance.connect', log_signals(SignalInstance.connect))
 class TestUIQuit:

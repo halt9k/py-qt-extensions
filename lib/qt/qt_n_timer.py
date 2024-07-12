@@ -1,6 +1,6 @@
 import functools
 
-from PySide6.QtCore import QTimer, Signal, Slot
+from PySide6.QtCore import QTimer, Signal, Slot, qDebug
 from typing_extensions import override
 
 
@@ -41,12 +41,14 @@ class QNTimer(QTimer):
         self.target_n = None
 
         super().timeout.connect(self.on_timeout)
+        # TODO cleanup - not nessesary?
         # if pydevd.settrace in thread leads to AV, that's best 2nd solution
         self.timeout = None
 
     @Slot()
     def on_timeout(self):
         self.timeout_n.emit(self.n)
+        qDebug('QNTimer.on_timeout')
 
         if not self.isSingleShot():
             # else called externally
@@ -65,6 +67,7 @@ class QNTimer(QTimer):
 
     @Slot()
     def continue_loop(self):
+        qDebug('QNTimer.continue_loop')
         self.n += 1
 
         if self.n == self.target_n:
