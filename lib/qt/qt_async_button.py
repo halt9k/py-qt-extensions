@@ -58,11 +58,9 @@ class QAsyncButton(QPushButton):
     def create_workthread(self):
         # possibly thread worker better to be extracted out of button
         assert not self.thread
-        # TODO does this solve termination problem?
-        self.thread = QTracedThread(parent=self)
+        self.thread = QTracedThread(self)
 
         assert not self.worker
-        # TODO what if worker created with parent as thread?
         self.worker: QWorker = self.create_worker()
         self.worker.moveToThread(self.thread)
 
@@ -88,7 +86,7 @@ class QAsyncButton(QPushButton):
 
         # if worker quits as expected, this call is direct signal
         # thread can also be stopped externally, for example, when main window closed
-        # in that case, call to stop_thread is indirect
+        # in that case, call to stop_thread can be from other signal
         self.worker.finished.connect(self.stop_thread)
 
         self.thread.finished.connect(self.delete_workthread)

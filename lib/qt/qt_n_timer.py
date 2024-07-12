@@ -40,6 +40,7 @@ class QNTimer(QTimer):
 
         self.n = None
         self.target_n = None
+        self.interval_msec = None
 
         super().timeout.connect(self.on_timeout)
         # alternative solution to pydevd.settrace() is to add it in QNTimer.on_timeout,
@@ -48,6 +49,10 @@ class QNTimer(QTimer):
 
     @Slot()
     def on_timeout(self):
+        if self.target_n <= 0:
+            self.break_loop()
+            return
+
         self.timeout_n.emit(self.n)
         qDebug('QNTimer.on_timeout')
 
@@ -57,18 +62,20 @@ class QNTimer(QTimer):
 
     @override
     def start(self, loop_n, interval_msec):
-        if loop_n < 0:
-            self.break_loop()
-            return
-
         self.n = 0
         self.target_n = loop_n
-        self.setInterval(interval_msec)
-        self.on_timeout()
+
+        # first iteration immidiately, like in a for loop
+        self.setInterval(0)
+        self.interval_msec = interval_msec
+
+        super().start()
 
     @Slot()
     def continue_loop(self):
         qDebug('QNTimer.continue_loop')
+        if self.n == 0:
+            self.setInterval(self.interval_msec)
         self.n += 1
 
         if self.n == self.target_n:

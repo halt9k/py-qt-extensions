@@ -111,7 +111,6 @@ class TestIntegratedLoad:
         timer.timeout_n.connect(spam_click)
         timer.finished.connect(app.ui.close)
 
-        # TODO 1 never finishes
         timer.start(25, 120)
         res = app.exec()
         app.shutdown()

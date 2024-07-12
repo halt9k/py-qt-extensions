@@ -52,8 +52,8 @@ class QWorker(QObject):
     finished = Signal()
     started = Signal()
 
-    def __init__(self):
-        super(QWorker, self).__init__()
+    def __init__(self, *args, **kwargs):
+        super(QWorker, self).__init__(*args, **kwargs)
         # self.on_finished better before other connections, therefore in __init__, not on_run
         self.finished.connect(self.on_finished)
 

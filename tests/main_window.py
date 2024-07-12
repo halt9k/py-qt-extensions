@@ -4,6 +4,7 @@ import sys
 from PySide6.QtCore import Signal
 from PySide6.QtGui import QCloseEvent
 from PySide6.QtWidgets import QApplication, QMainWindow, QWidget
+from typing_extensions import override
 
 from lib.qt.qt_async_button import QAsyncButton
 
@@ -32,15 +33,12 @@ class SendData:
 
 class MainWindow(MainWindowFrame):
     close_event = Signal()
-    show_event = Signal()
-    # send_test_data = Signal(SendData)
 
-    def __init__(self):
-        super().__init__()
-
+    @override
     def closeEvent(self, event: QCloseEvent) -> None:
         self.close_event.emit()
-        event.accept()
+        # event.accept()
+        super().closeEvent(event)
 
     '''
     @Slot()
