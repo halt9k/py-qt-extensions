@@ -1,3 +1,4 @@
+import contextlib
 import functools
 
 from PySide6.QtCore import QTimer, Signal, Slot, qDebug
@@ -27,7 +28,7 @@ class QNTimer(QTimer):
     finished = Signal()
     timeout_n = Signal(int)
 
-    def __init__(self, wait_for_continue=True, *args, **kwargs):
+    def __init__(self, *args, wait_for_continue=True, **kwargs):
         """
         Parameters:
         wait_for_continue:
@@ -41,8 +42,8 @@ class QNTimer(QTimer):
         self.target_n = None
 
         super().timeout.connect(self.on_timeout)
-        # TODO cleanup - not nessesary?
-        # if pydevd.settrace in thread leads to AV, that's best 2nd solution
+        # alternative solution to pydevd.settrace() is to add it in QNTimer.on_timeout,
+        # which means QNTimer.timeout must not be used
         self.timeout = None
 
     @Slot()
@@ -79,30 +80,33 @@ class QNTimer(QTimer):
         if self.isSingleShot():
             super().start()
 
+    @Slot()
     def break_loop(self):
         # not properly tested under async mode yet
         assert self.isSingleShot()
 
         self.stop()
+        qDebug('QNTimer.break_loop')
         self.finished.emit()
 
 
-def qntimer_timeout_slot(timer_name):
-    def decorator(method):
-        """
-        Wrapper example for simple timeout_n Slots,
-        but continue_loop() may be async if a chain of async events is involved
-        """
+@contextlib.contextmanager
+def qntimer_timeout_guard(*args):
+    """
+    Wrapper example for simple timeout_n slots to prevent hang on exception
+    but continue_loop() may also be async if a chain of async events is involved
+    """
+    if len(args) == 1:
+        timer = args[0]
+    elif len(args) == 2:
+        timer = args[1]
+    else:
+        raise TypeError
+    assert type(timer) is QNTimer
 
-        @functools.wraps(method)
-        def wrapper(obj, step_n: int, *args, **kwargs):
-            timer: QNTimer = obj.__getattribute__(timer_name)
-            assert type(timer) is QNTimer
-            try:
-                method(obj, step_n, *args,  **kwargs)
-            except:
-                timer.break_loop()
-                raise
-            timer.continue_loop()
-        return wrapper
-    return decorator
+    try:
+        yield
+    except:
+        timer.break_loop()
+        raise
+    timer.continue_loop()

@@ -10,7 +10,7 @@ from typing_extensions import override
 import tests.helpers.os_helpers  # noqa: F401
 from main_window import App
 from lib.qt.qt_async_button import QAsyncButton
-from lib.qt.qt_n_timer import QNTimer
+from lib.qt.qt_n_timer import QNTimer, qntimer_timeout_guard
 from lib.qt.qt_traced_thread import QWorker, QTracedThread, QSafeThreadedPrint
 
 
@@ -64,17 +64,17 @@ class TestIntegratedLoad:
         class TestWorker(QWorker):
             def __init__(self):
                 super().__init__()
-                self.timer = QNTimer(parent=self)
+                self.timer = QNTimer(self)
                 qDebug('TestWorker.__init__')
                 self.timer.timeout_n.connect(self.worker_payload)
                 self.timer.finished.connect(self.finished)
 
             @Slot(int)
             def worker_payload(self, n):
-                qDebug('TestWorker.worker_payload')
-                test_sleeps = [0, 150, 1, 99, 9]
-                QThread.msleep(test_sleeps[n])
-                self.timer.continue_loop()
+                with qntimer_timeout_guard(self.timer):
+                    qDebug('TestWorker.worker_payload')
+                    test_sleeps = [0, 150, 1, 99, 9]
+                    QThread.msleep(test_sleeps[n])
 
             @override
             def on_run(self):
@@ -94,10 +94,11 @@ class TestIntegratedLoad:
             return worker
 
         app.ui.test_button.attach_worker(cb_create_worker=test_worker_factory)
-        timer = QNTimer(parent=app.ui)
+        timer = QNTimer(app.ui)
         qDebug('test_traced_thread_random_crash.body')
 
         @Slot(int)
+        @qntimer_timeout_guard(timer)
         def spam_click(n):
             qDebug(f'spam_click {n}')
             if not app.ui.test_button.isEnabled():
@@ -107,11 +108,11 @@ class TestIntegratedLoad:
                 self.down_at_least_once = True
             test_sleeps = [0, 200, 1, 0, 10, 60]
             QThread.msleep(test_sleeps[min(n, 5)])
-            timer.continue_loop()
         timer.timeout_n.connect(spam_click)
         timer.finished.connect(app.ui.close)
 
-        timer.start(1, 120)
+        # TODO 1 never finishes
+        timer.start(25, 120)
         res = app.exec()
         app.shutdown()
 

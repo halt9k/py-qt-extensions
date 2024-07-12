@@ -14,10 +14,11 @@ class QTracedThread(QThread):
 
     @override
     def run(self):
-        # without this, breakpoints may not work under IDE
+        # controls timer events tracing even when worker is used
         pydevd.settrace(suspend=False)
+
         qDebug('QTracedThread.run')
-        super(QTracedThread, self).run()
+        super().run()
 
     @staticmethod
     def quit_or_terminate_qthread(thread: QThread):

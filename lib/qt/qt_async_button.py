@@ -58,9 +58,11 @@ class QAsyncButton(QPushButton):
     def create_workthread(self):
         # possibly thread worker better to be extracted out of button
         assert not self.thread
-        self.thread = QTracedThread()
+        # TODO does this solve termination problem?
+        self.thread = QTracedThread(parent=self)
 
         assert not self.worker
+        # TODO what if worker created with parent as thread?
         self.worker: QWorker = self.create_worker()
         self.worker.moveToThread(self.thread)
 
