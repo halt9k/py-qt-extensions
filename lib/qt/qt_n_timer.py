@@ -1,5 +1,6 @@
 import contextlib
-import functools
+import dataclasses
+from typing import Callable
 
 from PySide6.QtCore import QTimer, Signal, Slot, qDebug
 from typing_extensions import override
@@ -96,24 +97,27 @@ class QNTimer(QTimer):
         qDebug('QNTimer.break_loop')
         self.finished.emit()
 
+    @dataclasses.dataclass(init=True)
+    class Loop:
+        break_loop: Callable
 
-@contextlib.contextmanager
-def qntimer_timeout_guard(*args):
-    """
-    Wrapper example for simple timeout_n slots to prevent hang on exception
-    but continue_loop() may also be async if a chain of async events is involved
-    """
-    if len(args) == 1:
-        timer = args[0]
-    elif len(args) == 2:
-        timer = args[1]
-    else:
-        raise TypeError
-    assert type(timer) is QNTimer
+    @contextlib.contextmanager
+    def qntimer_timeout_guard(*args):
+        """
+        Wrapper example for simple timeout_n slots to prevent hang on exception
+        but continue_loop() may also be async if a chain of async events is involved
+        """
+        if len(args) == 1:
+            timer = args[0]
+        elif len(args) == 2:
+            timer = args[1]
+        else:
+            raise TypeError
+        assert type(timer) is QNTimer
 
-    try:
-        yield
-    except:
-        timer.break_loop()
-        raise
-    timer.continue_loop()
+        try:
+            yield QNTimer.Loop(timer.break_loop)
+        except:
+            timer.break_loop()
+            raise
+        timer.continue_loop()
