@@ -77,12 +77,13 @@ class QComboBoxEx(QComboBox):
 
 
 class QTextEditEx(QTextEdit):
+    """ Keeps scroll at the bottom """
+
     def __init__(self, *args, **kwargs):
         super(QTextEditEx, self).__init__(*args, **kwargs)
         self.verticalScrollBar().rangeChanged.connect(self.on_range_changed)
         self.at_bottom = True
 
-    """ Keeps scroll at the bottom """
     def append(self, text):
         scrollbar = self.verticalScrollBar()
         self.at_bottom = scrollbar.value() >= (scrollbar.maximum() - 4)
